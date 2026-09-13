@@ -37,19 +37,44 @@ Depended on byte-mapping the char-server auth handshake and the char-list auto-p
 
 Exit criteria: an existing Fate MMO character (created on PC) is visible and selectable from the Android client, and a new character created on Android is visible on the PC client's char-select screen. **Not yet verified against a live server by a human** — the parsing is byte-accurate to the source, but nobody has run this against a real FateRO instance yet; do that before calling Phase 2 fully closed.
 
-## Phase 3 — Map Connection 🟡 (handshake done; rendering not started)
+## Phase 3 — Map Connection 🟡 (handshake + real rendering + local movement done; server-synced movement not started)
 
 The `packet_db[0x0072]` question flagged after Phase 2 turned out to matter a lot: `0x0072` is **not** `CZ_ENTER` for this build at all — the server reassigns it to `clif_parse_UseSkillToId` for modern clients. Tracing the actual runtime table (`clif_packetdb.hpp` + `clif_shuffle.hpp`) turned up two more things a non-verified implementation would have gotten wrong or badly overbuilt: the map server has both a packet-ID shuffle *and* an XOR obfuscation mechanism in its source, both of which happen to resolve to a no-op for PACKETVER 20250716 (confirmed by tracing the actual zero-valued constants, not assumed from the `#ifdef` alone). Full derivation in protocol doc §5.
 
+### 3a — Protocol handshake ✅
+
 * [x] Resolve the real `CZ_ENTER` opcode/layout for this PACKETVER: `0x0436`, 23 bytes (protocol doc §5.1) — not `0x0072`, and not the 19-byte legacy form either.
 * [x] `MapServerClient.kt`: `CZ_ENTER` handshake using the char-select redirect data from Phase 2, reads the session-id echo (`0x0283`), waits out the invisible char-server round trip (protocol doc §5.3), and parses `ZC_ACCEPT_ENTER` (`0x02EB`) — including reverse-engineering the packed 3-byte X/Y/direction encoding (`WBUFPOS`, protocol doc §5.5) to get real coordinates — or `ZC_REFUSE_ENTER`/`SC_NOTIFY_BAN` on failure.
-* [x] `MapActivity.kt`: debug screen (map name, char/map-server addresses, account/char id, decoded x/y/dir, server start tick) — satisfies brief §37's debug-overlay requirement, but is explicitly *not* a game screen.
-* [ ] **Not done, and not faked:** `CZ_NOTIFY_ACTORINIT` ("LoadEndAck") is never sent, so the server never actually spawns the character or streams inventory/nearby-entities/gameplay packets (protocol doc §5.6) — sending it now would just mean silently dropping data this client can't process yet.
-* [ ] **Not done:** migrating networking from the Phase 1/2/3 Kotlin PoC into the `native/networking` + `native/protocol` C++ layer (architecture doc §2's designated migration point). Still Kotlin/`java.net.Socket` throughout.
-* [ ] **Not done:** any rendering — walkable-cell grid, ground tiles (even flat-color placeholders), camera. No OpenGL ES code exists yet; `native/renderer` still only has the Phase 0 JNI stub.
-* [ ] **Not done:** entity spawn (`ZC_NOTIFY_STANDENTRY` family) — deferred to Phase 4 per the original plan, now doubly true since nothing spawns until `LoadEndAck` is sent.
+* [x] Resolved (but not yet sent) `CZ_NOTIFY_ACTORINIT` (LoadEndAck, `0x007D`) and `CZ_REQUEST_MOVE` (WalkToXY, `0x035F`) opcodes, plus the server's own-movement confirmation `ZC_NOTIFY_PLAYERMOVE` (`0x0087`) — protocol doc §5.6.
 
-Exit criteria (partially met): a character's `CZ_ENTER` handshake against the real map-server succeeds and the server-assigned spawn coordinates are correctly decoded and displayed (protocol-level proof, done) — but the character does not yet visibly "enter a real map" in any rendered sense, since there is no renderer and the client deliberately doesn't send `LoadEndAck` yet. Treat Phase 3 as split into 3a (connect + confirm spawn — done) and 3b (LoadEndAck, entity streaming, rendering, native migration — not started) rather than claiming the whole phase is closed. **Not yet verified against a live server by a human**, same caveat as Phase 2.
+### 3b — Real asset pipeline + local rendering ✅ (new — went well beyond the original "flat placeholder tiles" plan, per explicit request for real assets)
+
+The operator provided the actual Fate MMO client (`F:\FateMMO`, `Fate.grf`/`palettes.grf`/`data.grf` — `hd.grf` and `graymap.grf` excluded per operator instruction). Built and verified (against these real files, not memory) a full offline asset pipeline — see `FATE_MMO_MOBILE_ASSETS.md`:
+
+* [x] **GRF archive reader** (`tools/grf/`) — version 0x200, verified by exact file-table arithmetic against `Fate.grf` (135,466 files, zero discrepancy) and by extracting real, readable `clientinfo.xml`.
+* [x] **GAT walkability parser** — verified by exact file-size arithmetic against real `prontera.gat` (312×392 cells).
+* [x] **GND ground-mesh parser** — every struct size (lightmap/surface/cube) confirmed by exact file-size arithmetic against real `prontera.gnd`, not assumed.
+* [x] **Map rasterizer** — composites the real ground textures (found and extracted from `data.grf`, e.g. the actual Prontera plaza cobblestone texture) into one top-down image. Visually confirmed as recognizably real Prontera (cross-road layout, central plaza, moat).
+* [x] **SPR sprite parser** — version 2.1, including reverse-engineering the RLE pixel encoding (not documented anywhere available, worked out by hand against the real byte stream and confirmed by decoding all 110 real frames of the novice sprite cleanly). Rendered frame 0 is visually confirmed as the real, recognizable RO Novice sprite.
+* [x] **Android integration**: `GameMapView.kt` (Canvas-based, real ground image + real character sprite + real GAT wall-collision), bundled for prontera only (`android/app/src/main/assets/maps/prontera/`), wired into `MapActivity` — shown when the char-select redirect's map name is prontera, with the character placed at the real server-confirmed spawn coordinates from `ZC_ACCEPT_ENTER`.
+* [ ] **Not done**: ACT animation layer parsing (directional/walk sprite animation) — character renders as a single static idle frame; see `FATE_MMO_MOBILE_ASSETS.md` §6 for exactly where that parsing attempt stalled.
+* [ ] **Not done**: RSW props (buildings/trees/models) — ground texture only, no 3D geometry.
+* [ ] **Not done**: the two-tier "download what's needed now" / "download all" asset delivery the operator asked for. Assets are bundled directly in the APK for this pass (no server-hosted asset pack exists yet to download from). See §3d below for the deferred design.
+* [ ] **Not done**: maps other than prontera — each additional map needs its own pipeline run (`tools/grf` against that map's `.gnd`/`.gat`) and its own bundled/downloaded asset pack.
+
+### 3c — Movement: real locally, not yet server-synced 🟡
+
+* [x] Virtual joystick (`GameMapView.kt`) driving **client-local** movement, constrained by the **real** GAT walkability grid (walls actually block movement, using real map collision data).
+* [ ] **Not done, deliberately**: sending `CZ_NOTIFY_ACTORINIT`/`CZ_REQUEST_MOVE` to the server. Reason: `LoadEndAck` is what triggers the server to start streaming the *entire rest* of the gameplay protocol (inventory, stats, every nearby entity's spawn packet) on this socket, and — unlike every packet verified so far — there is no central length registry for server→client packets to safely skip the ones this client doesn't handle yet (the `packet_db` table only covers packets the server *parses from the client*). Opening that floodgate without a way to safely discard unrecognized packets risks silently corrupting the read stream. This needs its own dedicated reverse-engineering pass (enumerating and length-mapping the server→client packet surface), not an extension of the CZ_ENTER-style verification already done.
+
+### 3d — Two-tier asset download (operator's explicit request) — design only, not implemented
+
+The operator asked for two login-area choices: "download what's needed now" (then fetch more on demand) vs. "download all". Not built this pass because it needs infrastructure that doesn't exist yet: a place for the operator to host converted asset packs (a manifest + versioned files over plain HTTP/HTTPS — no proprietary service, per brief §31's zero-recurring-cost preference). Design sketch for whoever picks this up:
+* `tools/grf` (or a new `tools/package-builder`) produces a versioned asset pack per map/sprite-set plus a `manifest.json` (file list, sizes, hashes).
+* Client-side: a downloader/cache manager checks the manifest, fetches only what's missing, verifies hashes, and exposes "essential pack" (login/UI/starter map) vs. "full pack" (everything) as the two login-screen choices — mirroring how `server_config_*.json` already separates environments.
+* Until this exists, new maps/sprites are added the same way prontera was: run the pipeline, bundle the output as app assets, extend `MapActivity`'s `BUNDLED_MAP_NAME` check.
+
+Exit criteria: character enters a real map (prontera) at the correct server-assigned coordinates and can walk around it against real wall collision, rendered with real Fate MMO art — **met, with server-synced movement and other maps/entities explicitly still open**. **Not yet verified against a live server or a real device by a human** — the network handshake parsing is byte-accurate to source and the rendering pipeline is visually confirmed against known Prontera/Novice art, but nobody has run the APK on an actual device against a live FateRO instance yet.
 
 ## Phase 4 — Movement
 

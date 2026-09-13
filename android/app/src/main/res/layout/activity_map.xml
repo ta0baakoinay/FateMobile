@@ -4,67 +4,74 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/fate_bg"
-    android:padding="24dp">
-
-    <TextView
-        android:id="@+id/titleText"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="@string/map_title"
-        android:textColor="@color/fate_accent"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.1"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <TextView
-        android:id="@+id/notImplementedText"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:text="@string/map_not_implemented"
-        android:textColor="@color/fate_error"
-        android:textSize="12sp"
-        app:layout_constraintTop_toBottomOf="@id/titleText"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+    android:background="@color/fate_bg">
 
     <!--
-      Debug overlay per project brief §37 — this screen IS the debug overlay,
-      not a placeholder for one, since there is no renderer yet to overlay it
-      onto (docs/FATE_MMO_MOBILE_ROADMAP.md Phase 3 stops at the connect
-      handshake). Real map rendering replaces this screen in a later phase.
+      Real top-down renderer (docs/FATE_MMO_MOBILE_ASSETS.md): the actual
+      rasterized ground image + real GAT walkability grid + real character
+      sprite, all converted from the operator's Fate MMO client. Movement
+      here is client-local only — see GameMapView's class doc and
+      docs/FATE_MMO_MOBILE_PROTOCOL.md §5.6 for why server-synced movement
+      isn't wired yet. Hidden (falls back to the debug-only panel below)
+      when the spawn map isn't one this build has bundled assets for.
     -->
+    <com.fatemmo.mobile.world.GameMapView
+        android:id="@+id/gameMapView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <LinearLayout
-        android:id="@+id/debugPanel"
+        android:id="@+id/overlayPanel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@color/fate_panel"
-        android:padding="16dp"
-        android:layout_marginTop="20dp"
-        app:layout_constraintTop_toBottomOf="@id/notImplementedText"
+        android:background="#B0161B26"
+        android:padding="14dp"
+        android:layout_margin="16dp"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/titleText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/map_title"
+            android:textColor="@color/fate_accent"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.05" />
+
+        <TextView
+            android:id="@+id/notImplementedText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/map_not_implemented"
+            android:textColor="@color/fate_error"
+            android:textSize="10sp" />
 
         <TextView
             android:id="@+id/statusText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:text="@string/map_status_connecting"
             android:textColor="@color/fate_text_primary"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
 
         <TextView
             android:id="@+id/detailText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="6dp"
             android:textColor="@color/fate_text_secondary"
-            android:textSize="13sp"
+            android:textSize="11sp"
             android:fontFamily="monospace" />
 
     </LinearLayout>
@@ -72,13 +79,13 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/backButton"
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_margin="16dp"
         android:text="@string/charselect_back"
         android:textColor="@color/fate_text_primary"
-        app:layout_constraintTop_toBottomOf="@id/debugPanel"
-        app:layout_constraintStart_toStartOf="parent"
+        android:backgroundTint="#80000000"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

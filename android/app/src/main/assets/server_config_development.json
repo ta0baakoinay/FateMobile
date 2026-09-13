@@ -4,7 +4,7 @@
     "host": "10.0.2.2",
     "port": 6900
   },
-  "clientVersion": 20250716,
+  "clientVersion": 55,
   "clientType": 0,
-  "notes": "10.0.2.2 is the Android emulator's alias for the host machine's localhost. Point this at your FateRO dev login server's real LAN IP when testing on a physical device."
+  "notes": "10.0.2.2 is the Android emulator's alias for the host machine's localhost. Point this at your FateRO dev login server's real LAN IP when testing on a physical device. clientVersion 55 is the real value from data/clientinfo.xml inside Fate.grf, not the server's PACKETVER build date — the two are unrelated numbers (see docs/FATE_MMO_MOBILE_PROTOCOL.md §3.1)."
 }

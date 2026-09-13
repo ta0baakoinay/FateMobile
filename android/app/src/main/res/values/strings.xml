@@ -50,8 +50,8 @@
     <string name="charselect_delete_refused">Deletion refused (error code %1$d).</string>
     <string name="charselect_delete_error">Delete failed: %1$s</string>
 
-    <string name="map_title">MAP SERVER — DEBUG</string>
-    <string name="map_not_implemented">Rendering, movement, and gameplay are NOT implemented — this screen only proves the connect handshake (Phase 3). See docs/FATE_MMO_MOBILE_ROADMAP.md.</string>
+    <string name="map_title">FATE MMO</string>
+    <string name="map_not_implemented">Local exploration only — movement is NOT sent to the server yet (real map/sprite/wall-collision, no gameplay). See docs/FATE_MMO_MOBILE_ROADMAP.md Phase 3.</string>
     <string name="map_status_connecting">Connecting to map-server…</string>
     <string name="map_status_success">Map entry accepted by server.</string>
     <string name="map_status_refused">Map-server refused entry (error code %1$d).</string>

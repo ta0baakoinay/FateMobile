@@ -1,10 +1,10 @@
 {
   "environment": "production",
   "login": {
-    "host": "51.79.147.208",
+    "host": "167.104.101.102",
     "port": 6900
   },
-  "clientVersion": 20250716,
+  "clientVersion": 55,
   "clientType": 0,
-  "notes": "Host taken from the PC client's clientinfo.xml. The operator's other listed address, 127.0.0.1, is a loopback/local entry and not reachable from a mobile device. See docs/FATE_MMO_MOBILE_PROTOCOL.md §7 for why a raw IP here should eventually sit behind a TLS-terminating proxy rather than exposing rAthena TCP directly to the internet."
+  "notes": "Host and clientVersion extracted directly from data/clientinfo.xml inside the real Fate.grf (F:\\FateMMO\\Fate.grf, highest-priority GRF per DATA.ini) — the <display>Singapore 1</display> entry, address 167.104.101.102, port 6900, version 55. This differs from an address given verbally earlier (51.79.147.208) — flagged for the operator to confirm which is actually live, since GRF content can go stale if the server moved after this client build shipped. The GRF's second entry, <display>Test Server</display> at 127.0.0.1, matches what the operator described separately as a local/test address. See docs/FATE_MMO_MOBILE_PROTOCOL.md §7 for why a raw IP here should eventually sit behind a TLS-terminating proxy rather than exposing rAthena TCP directly to the internet."
 }

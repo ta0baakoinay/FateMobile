@@ -25,12 +25,19 @@ android/gradle/wrapper/dists/
 
 # Converted runtime assets are build output of tools/, not source — see assets/README.md.
 # Keep the folder and its README, ignore everything generated into it.
-assets/*
-!assets/README.md
+# Anchored to the repo root (leading slash) — NOT android/app/src/main/assets/,
+# which is the Android app's own bundled-assets folder and must stay tracked.
+/assets/*
+!/assets/README.md
 
 # Never commit real GRF/sprite/asset source dumps into the repo either.
 *.grf
 *.gpf
+
+# tools/grf's compiled classes and scratch extraction output (large binary
+# intermediates from running the pipeline against the operator's own client
+# files) — never source, never something another clone should need.
+tools/grf/out/
 
 # Server source clones pulled in for protocol inspection (see docs/) — not part of this repo.
 /FateRO/

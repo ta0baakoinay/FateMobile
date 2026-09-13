@@ -38,7 +38,10 @@ data class ServerConfig(
                 // logclif_parse_reqauth_raw() in the inspected FateRO source — included
                 // for wire compliance with the struct layout, not because the server
                 // currently rejects on it. See docs/FATE_MMO_MOBILE_PROTOCOL.md §3.1.
-                clientVersion = obj.optLong("clientVersion", 20250716L),
+                // Default of 55 is the real value from data/clientinfo.xml inside the
+                // actual Fate.grf client package — NOT the server's PACKETVER build
+                // date (20250716), which is an unrelated number for a different field.
+                clientVersion = obj.optLong("clientVersion", 55L),
                 clientType = obj.optInt("clientType", 0)
             )
         }

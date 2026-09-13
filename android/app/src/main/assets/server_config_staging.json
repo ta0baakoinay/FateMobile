@@ -4,7 +4,7 @@
     "host": "staging.fatemmo.example",
     "port": 6900
   },
-  "clientVersion": 20250716,
+  "clientVersion": 55,
   "clientType": 0,
   "notes": "Placeholder host — replace with the real staging domain/IP before use. Never a bare LAN IP here, per docs/FATE_MMO_MOBILE_ARCHITECTURE.md §8/§31 (mobile networks can't reach 192.168.x.x)."
 }
