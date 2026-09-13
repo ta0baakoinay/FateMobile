@@ -1,10 +1,10 @@
 {
   "environment": "production",
   "login": {
-    "host": "167.104.101.102",
+    "host": "51.79.147.208",
     "port": 6900
   },
   "clientVersion": 55,
   "clientType": 0,
-  "notes": "Host and clientVersion extracted directly from data/clientinfo.xml inside the real Fate.grf (F:\\FateMMO\\Fate.grf, highest-priority GRF per DATA.ini) — the <display>Singapore 1</display> entry, address 167.104.101.102, port 6900, version 55. This differs from an address given verbally earlier (51.79.147.208) — flagged for the operator to confirm which is actually live, since GRF content can go stale if the server moved after this client build shipped. The GRF's second entry, <display>Test Server</display> at 127.0.0.1, matches what the operator described separately as a local/test address. See docs/FATE_MMO_MOBILE_PROTOCOL.md §7 for why a raw IP here should eventually sit behind a TLS-terminating proxy rather than exposing rAthena TCP directly to the internet."
+  "notes": "Host resolved by direct SSH access to the operator's actual VPS (debian@51.79.147.208), confirmed to be running the real FateRO checkout (/home/debian/FateRO, git remote origin=ta0baakoinay/FateRO) with login_port=6900 in conf/login_athena.conf. This supersedes 167.104.101.102, which came from a clientinfo.xml snapshot bundled in the client's Fate.grf and could not be independently confirmed as still current — direct server access is stronger evidence. clientVersion 55 still comes from that same clientinfo.xml (data/clientinfo.xml inside F:\\FateMMO\\Fate.grf) and remains unverified against the server itself, since the login handler doesn't enforce this field (see docs/FATE_MMO_MOBILE_PROTOCOL.md §3.1). See docs/FATE_MMO_MOBILE_PROTOCOL.md §7 for why a raw IP here should eventually sit behind a TLS-terminating proxy rather than exposing rAthena TCP directly to the internet."
 }

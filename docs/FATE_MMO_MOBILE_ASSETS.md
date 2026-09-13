@@ -85,13 +85,13 @@ offset  size  field
 
 **Verification**: the rasterized prontera output is immediately recognizable as the real map — the cross-shaped road layout, central diamond plaza, octagonal ring road, and the curved moat at the south edge all match the known real Prontera layout. This was visually confirmed, not just numerically self-consistent.
 
-## 4. What extracting `clientinfo.xml` revealed (bonus finding, not a format spec)
+## 4. What extracting `clientinfo.xml` revealed, and how the address question was actually settled
 
 `data\clientinfo.xml` inside `Fate.grf` (highest load-order priority per `DATA.ini`) lists:
-- `<display>Singapore 1</display>`, `<address>167.104.101.102</address>`, `<port>6900</port>`, `<version>55</version>`, `<langtype>1</langtype>` — the real production login target and the real client version number the login packet's `version` field should carry (see `FATE_MMO_MOBILE_PROTOCOL.md` §3.1 — this was previously an unverified placeholder).
+- `<display>Singapore 1</display>`, `<address>167.104.101.102</address>`, `<port>6900</port>`, `<version>55</version>`, `<langtype>1</langtype>`.
 - A second `<connection>`, `<display>Test Server</display>`, `<address>127.0.0.1</address>` — matches what the operator described separately as a local/test address.
 
-This superseded an earlier, verbally-provided production IP (`51.79.147.208`) in `server_config_production.json` — flagged there for the operator to confirm which is actually current, since a GRF's bundled `clientinfo.xml` reflects whatever was true when that client build was packaged, and the server may have moved since.
+This initially superseded an earlier, verbally-provided production IP (`51.79.147.208`) in `server_config_production.json`, on the reasoning that a live client config file is stronger evidence than a verbally-recalled address. That reasoning turned out to be backwards in this case: the operator subsequently provided direct SSH access to `51.79.147.208`, which confirmed it's running the actual `FateRO` checkout (`/home/debian/FateRO`, git remote `ta0baakoinay/FateRO`, `login_port: 6900` in `conf/login_athena.conf`) — i.e., direct access to the running server is stronger evidence than a bundled config snapshot that could predate a server move. `server_config_production.json` now points at `51.79.147.208`; `clientVersion: 55` from `clientinfo.xml` is kept (the login handler doesn't enforce it either way, see protocol doc §3.1), but is itself still just a client-side value, not something re-derived from the server. The lesson generalizes: when a file-based snapshot and a live, independently-verifiable source disagree, prefer whichever was actually checked against the thing in question, not whichever was extracted more recently.
 
 ## 5. SPR sprite format (version 2.1 confirmed)
 
