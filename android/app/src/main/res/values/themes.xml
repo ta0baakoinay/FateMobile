@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.FateMobile" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/fate_accent</item>
+        <item name="colorPrimaryDark">@color/fate_bg</item>
+        <item name="colorAccent">@color/fate_accent</item>
+        <item name="android:windowBackground">@color/fate_bg</item>
+        <item name="android:statusBarColor">@color/fate_bg</item>
+    </style>
+</resources>

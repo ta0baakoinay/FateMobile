@@ -1,0 +1,42 @@
+# Android / Gradle
+*.iml
+.gradle/
+local.properties
+.idea/
+.DS_Store
+build/
+android/app/build/
+android/build/
+android/captures/
+android/.cxx/
+android/app/.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Gradle wrapper distribution cache (jar itself IS committed, this is the downloaded zip cache)
+android/gradle/wrapper/dists/
+
+# NDK/CMake
+.externalNativeBuild/
+.cxx/
+*.so
+
+# Converted runtime assets are build output of tools/, not source — see assets/README.md.
+# Keep the folder and its README, ignore everything generated into it.
+assets/*
+!assets/README.md
+
+# Never commit real GRF/sprite/asset source dumps into the repo either.
+*.grf
+*.gpf
+
+# Server source clones pulled in for protocol inspection (see docs/) — not part of this repo.
+/FateRO/
+/rathena/
+
+# OS/editor cruft
+Thumbs.db
+*.swp
+.vscode/

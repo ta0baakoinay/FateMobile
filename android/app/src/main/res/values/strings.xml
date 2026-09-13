@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fate MMO</string>
+
+    <string name="login_title">FATE MMO</string>
+    <string name="login_username_hint">Username</string>
+    <string name="login_password_hint">Password</string>
+    <string name="login_button">LOGIN</string>
+    <string name="login_settings_button">SETTINGS</string>
+    <string name="login_exit_button">EXIT</string>
+
+    <string name="status_idle">Enter your Fate MMO account to continue.</string>
+    <string name="status_connecting">Connecting to %1$s:%2$d…</string>
+    <string name="status_authenticating">Authenticating…</string>
+    <string name="status_success">Login OK — account #%1$d, %2$d char-server(s) available.</string>
+    <string name="status_refused">Login refused by server (error code %1$d).</string>
+    <string name="status_banned">Account banned/notified: code %1$d.</string>
+    <string name="status_disconnected">Disconnected.</string>
+    <string name="status_error">Connection error: %1$s</string>
+
+    <string name="dialog_settings_title">Server Settings</string>
+    <string name="dialog_exit_title">Exit Fate MMO?</string>
+</resources>

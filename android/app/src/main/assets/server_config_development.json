@@ -1,0 +1,10 @@
+{
+  "environment": "development",
+  "login": {
+    "host": "10.0.2.2",
+    "port": 6900
+  },
+  "clientVersion": 20250716,
+  "clientType": 0,
+  "notes": "10.0.2.2 is the Android emulator's alias for the host machine's localhost. Point this at your FateRO dev login server's real LAN IP when testing on a physical device."
+}

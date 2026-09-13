@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder monogram mark. Replace with the real Fate MMO logo per
+     docs/FATE_MMO_MOBILE_ARCHITECTURE.md §7 (asset pipeline) when brand
+     art is available; this only exists so the project builds and installs
+     with a distinguishable icon in the meantime. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#C9A24B"
+        android:pathData="M34,30 L74,30 L74,42 L48,42 L48,50 L68,50 L68,62 L48,62 L48,78 L34,78 Z" />
+</vector>

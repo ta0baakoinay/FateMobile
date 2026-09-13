@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fallback launcher icon resolution for API 24-25 devices, which don't
+     read mipmap-anydpi-v26/ic_launcher.xml (adaptive icons need API 26+). -->
+<resources>
+    <item name="ic_launcher" type="mipmap">@drawable/ic_launcher_foreground</item>
+</resources>

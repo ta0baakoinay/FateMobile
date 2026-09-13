@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="fate_bg">#0B0E14</color>
+    <color name="fate_panel">#161B26</color>
+    <color name="fate_accent">#C9A24B</color>
+    <color name="fate_accent_dim">#8A6F2E</color>
+    <color name="fate_text_primary">#F2EFE6</color>
+    <color name="fate_text_secondary">#9AA3B5</color>
+    <color name="fate_error">#E05B5B</color>
+    <color name="fate_success">#5BC98A</color>
+</resources>
