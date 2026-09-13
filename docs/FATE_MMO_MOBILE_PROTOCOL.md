@@ -329,35 +329,104 @@ Server replies with one of:
 | ← | 0x0070 | HC_REFUSE_DELETECHAR | 3 | 4.6 |
 | ← | 0x006F | HC_ACCEPT_DELETECHAR | 2 | 4.6 |
 
-## 5. Map server protocol (verified entry point only; full packet catalogue is Phase 3+ work)
+## 5. Map server protocol (connection handshake fully verified for Phase 3; gameplay packets remain later-phase work)
 
-File: `src/map/clif.cpp`.
+File: `src/map/clif.cpp` (~27,000 lines). The Phase 1 draft of this section used the opcode from a stale doxygen-style comment (`0x0072`) without checking the server's actual runtime packet table — the roadmap flagged this as unverified, and it was right to: **`0x0072` is wrong for this build**. It's been reassigned to `clif_parse_UseSkillToId` for modern clients (see §5.1). This section replaces that guess with what's actually registered for PACKETVER 20250716.
 
-### 5.1 Client → Server: `CZ_ENTER` (0x0072 default form)
+### 5.0 Two version-dependent wire-format quirks that affect every map-server packet
+
+Unlike login/char (fixed structs), the map server resolves each opcode's meaning through a **runtime table** (`packet_db[]`, populated once at startup by `#include`-ing `src/map/clif_packetdb.hpp` then `src/map/clif_shuffle.hpp` into `packetdb_readdb()`, `clif.cpp:26753`). Two historical anti-bot mechanisms live in that table and must be resolved for the exact PACKETVER before trusting any opcode number:
+
+**(a) Packet ID shuffling.** Official kRO clients up to 2018-03-07 shipped with a *per-build-random* mapping from semantic packet to wire opcode (a different mapping baked into every dated client executable) — `clif_shuffle.hpp` encodes each one as an exact `#if PACKETVER == YYYYMMDD` block. **Clients after that date stopped shuffling** — `clif_shuffle.hpp`'s own comment says so directly, and the file's final `#elif PACKETVER > 20180307` block (which applies to our build) uses stable, non-random opcodes. So for PACKETVER 20250716, ignore every dated block above; only the final catch-all block matters.
+
+**(b) Packet ID XOR obfuscation.** Separately, `src/config/packets.hpp:44-62` enables `PACKET_OBFUSCATION` for any `PACKETVER >= 20110817` (ours qualifies) — the 2-byte opcode of every client→server packet is XORed with a rolling key derived from `clif_cryptKey[0..2]` (`clif.cpp:26622-26696`; only the opcode is obfuscated, never the payload). **In practice this is also a no-op for this build**: `src/map/clif_obfuscation.hpp:421-422` hardcodes `clif_cryptKey = {0, 0, 0}` for any `PACKETVER > 20180307`, and XORing with a key derived from all-zero constants (`(0*0+0)>>16 & 0x7FFF = 0`) is the identity function. **Net effect: no cipher to implement.** This was verified by tracing the exact constant, not assumed — worth stating plainly since it's the kind of thing that's tempting to half-remember from an old rAthena guide and get backwards.
+
+Both quirks point the same direction: for this specific PACKETVER, the *mechanisms* exist in the source but their *effects* are inert. Don't let that generalize to "map protocol needs no special handling" for a different server build — if FateRO is ever recompiled for an older PACKETVER, both of these come back to life and this section would need re-deriving.
+
+### 5.1 Client → Server: `CZ_ENTER` (WantToConnection) — opcode `0x0436`, 23 bytes
+
+Resolved by tracing `packetdb_readdb()`'s two `#include`s in order (`clif_packetdb.hpp` first, `clif_shuffle.hpp` second — later registrations for the same opcode win). `clif_shuffle.hpp`'s final `#elif PACKETVER > 20180307` block (`clif_shuffle.hpp:4745-4748`) is what actually applies:
+
+```cpp
+#if PACKETVER_RE_NUM >= 20211103 || PACKETVER_MAIN_NUM >= 20220330
+    parseable_packet( 0x0436, 23, clif_parse_WantToConnection, 2, 6, 10, 14, 22 );
+#else
+    parseable_packet( 0x0436, 19, clif_parse_WantToConnection, 2, 6, 10, 14, 18 );
+#endif
+```
+`PACKETVER_RE_NUM` = `PACKETVER` = 20250716 ≥ 20211103, so the **23-byte** form applies:
 
 ```text
 offset  type    field
-0       int16   packetType = 0x0072   (0x0436 = CZ_ENTER2 variant also exists; "various
-                                        padded variants" per source comment at clif.cpp:11077)
+0       int16   packetType = 0x0436
 2       uint32  account_id
 6       uint32  char_id
-10      uint32  login_id1   (auth code carried over from login/char handshake)
-14      uint32  client_tick
-18      uint8   sex
+10      uint32  login_id1        (the auth code — AC_ACCEPT_LOGIN's login_id1, carried
+                                   through CH_ENTER, unchanged through this handshake)
+14      uint32  client_tick      (any monotonic value the client likes; server doesn't
+                                   validate it beyond existing, see clif.cpp:11098)
+18      uint8[4] unknown         (gap between the 19-byte legacy form and this one —
+                                   not read by packet_db[0x0436].pos[], safe to zero-fill)
+22      uint8   sex
+                                  total 23 bytes
 ```
-Confirmed at `clif.cpp:11077` (comment) and `clif_parse_WantToConnection` (`clif.cpp:11081`), which reads via the **versioned `packet_db[cmd].pos[]` offset table** rather than a fixed struct — meaning the exact byte offsets are resolved at runtime per-PACKETVER through `db/packet_db` client-version tables compiled into the binary, not a single fixed struct. **Do not hardcode offsets 2/6/10/14/18 blindly** — confirm the resolved `packet_db[0x0072]` positions for PACKETVER 20250716 specifically (grep the generated packet position table, or log `packet_db[cmd].pos[0..4]` at runtime) before wiring this up in Phase 3.
+`clif_parse_WantToConnection_sub` (`clif.cpp:11049`) validates `account_id` against `START_ACCOUNT_NUM..END_ACCOUNT_NUM`, `char_id > 0`, and `sex` is `0` or `1` — all read through `packet_db[cmd].pos[]`, so these offsets are exactly what the live server checks against, not an assumption.
 
-### 5.2 Everything past initial map entry
+### 5.2 Server → Client: session id echo, opcode `0x0283`, 6 bytes
 
-Movement, entity spawn (`ZC_NOTIFY_STANDENTRY` family), NPC dialogue, item pickup, inventory, skills, combat, chat, party, guild, storage, trade — all exist in `clif.cpp` (it's a ~27,000-line file) but were **not** individually catalogued in this pass. Each will be grepped and documented from source immediately before the phase that needs it (per §34 of the brief: build incrementally, don't front-load packet specs nobody's implementing yet). Do not let anything downstream assume a packet shape for these systems that hasn't been pulled from this file first.
+Sent immediately once `CZ_ENTER` passes validation and a session object is created (`clif.cpp:11169-11174`, active since `PACKETVER >= 20070521`): `int16 packetType; uint32 sessionId;` (this is an internal session pointer/id echo, not the account id — don't assume it equals `account_id`).
+
+### 5.3 What happens between the echo and the real answer: an invisible server-to-server round trip
+
+Right after sending the 0x0283 echo, the map server calls `chrif_authreq(sd, false)` (`clif.cpp:11176`), which asks the **char-server** to confirm the auth token this session presented (the same `login_id1`/`login_id2` pair minted back at login) — entirely server-to-server, invisible on the wire the client sees. **The client's next packet on this socket only arrives after that round trip resolves** — there's no intermediate "please wait" packet, so a client implementation must simply keep the socket read blocked/pending rather than treating silence as a hang after a fixed short timeout the way the login/char sockets can.
+
+### 5.4 Server → Client: the real answer — `ZC_ACCEPT_ENTER` (success) or `ZC_REFUSE_ENTER` (failure)
+
+**Success — `ZC_ACCEPT_ENTER`, opcode `0x02EB`, 13 bytes** (`clif_authok`, `clif.cpp:1060`; struct resolved for `PACKETVER >= 20160330`, `src/map/packets.hpp:554-563`):
+```text
+offset  type     field
+0       int16    packetType = 0x02EB
+2       uint32   startTime        (server tick at spawn, cosmetic)
+6       uint8[3] posDir           (packed X/Y/direction — see §5.5 for the bit layout)
+9       uint8    xSize            (ignored by the server itself per its own comment)
+10      uint8    ySize            (ignored)
+11      uint16   font
+                                   total 13 bytes
+```
+
+**Failure — `ZC_REFUSE_ENTER`, opcode `0x0074`, 3 bytes** (`clif_authrefuse`, `clif.cpp:1088`): `int16 packetType; uint8 errorCode;` — `0`=client type mismatch, `1`=ID mismatch, `2`=mobile out of available time, `3`=mobile already logged in, `4`=mobile waiting state.
+
+**Also possible: `SC_NOTIFY_BAN`, opcode `0x0081`, 3 bytes** — this is the *third* distinct server context reusing wire opcode `0x0081` with its own meaning (login's ban notice, char-server's auth-result, and now map's kick/disconnect notice — three different sockets, three different structs, same number; never assume opcode uniqueness across server types). Same `int16 packetType; uint8 errorCode;` shape, error table at `clif.cpp:1100-1120` (0=BAN_UNFAIR, 1=server closed, 2=already logged in, 3=timeout, 4=server full, 5=underage, and a long tail of billing/regional codes not relevant to this server).
+
+### 5.5 The 3-byte packed position+direction format (`WBUFPOS`, `clif.cpp:177`)
+
+This exact bit layout recurs throughout the map protocol (every entity spawn/move packet uses it, not just `ZC_ACCEPT_ENTER`) — worth documenting once, precisely, from the actual packing function rather than a remembered approximation:
+
+```cpp
+// encode (server-side, clif.cpp:177):
+byte0 = (x >> 2) & 0xFF
+byte1 = ((x << 6) | ((y >> 4) & 0x3F)) & 0xFF
+byte2 = ((y << 4) | (dir & 0x0F)) & 0xFF
+```
+Decoding (client-side, the inverse):
+```text
+x   = ((byte0 << 2) | (byte1 >> 6)) & 0x3FF
+y   = (((byte1 & 0x3F) << 4) | (byte2 >> 4)) & 0x3FF
+dir = byte2 & 0x0F
+```
+(10-bit range each for x/y, 4-bit direction — matches RO's known map-coordinate ceiling and 8/16-way facing enum.)
+
+### 5.6 What comes after — explicitly out of scope for Phase 3
+
+After `ZC_ACCEPT_ENTER`, the real client sends `CZ_NOTIFY_ACTORINIT` ("LoadEndAck" — "I've finished loading the map graphics", `clif_parse_LoadEndAck`, `clif.cpp:11182`), which is what actually triggers the server to spawn the character into the world and start streaming inventory, nearby entities, skills, etc. **Phase 3 does not send this** — doing so would open a flood of gameplay packets (`clif_inventorylist`, `clif_spawn`, `clif_getareachar` for every nearby entity, and more) that nothing in this client parses yet, which would just mean silently dropping server data on the floor. Phase 3's scope stops at "confirm the handshake and read back the server-assigned spawn position" (§5.4); actually entering the world — and the opcode for `CZ_NOTIFY_ACTORINIT`, itself subject to the same shuffle/obfuscation caveats as §5.0 and not yet re-verified for this PACKETVER — is left to whichever phase first needs to render the world and process live entity packets.
 
 ## 6. What this means for the Android client roadmap
 
 * **Phase 1 (network PoC)** only needs §3: connect to login, send `CA_LOGIN`, parse `AC_ACCEPT_LOGIN`/`AC_REFUSE_LOGIN`. Fully specified above, byte-for-byte, from source.
 * **Phase 2 (char select)** needs §4 — now fully byte-mapped: char-list auto-push (082D/006B/09A0/020D), select, create, and delete are all specified above with exact opcodes/offsets for PACKETVER 20250716, including two version-gated surprises a generic rAthena guide would get wrong for this build: `HC_ACCEPT_MAKECHAR` is `0x0B6F` (not the classic `0x006D`), and character deletion needs the account's **birthdate**, not an email, per this server's shipped `char_del_option: 2`.
-* **Phase 3 (map load/movement)** needs §5 — entry opcode confirmed, exact offsets need a runtime/packet-table check because map server resolves them dynamically per client version rather than via a fixed struct like login does.
-* Everything in §5.2 is explicitly unspecified pending the phase that needs it.
+* **Phase 3 (map connect)** needs §5 — now fully resolved: the Phase 1/2 placeholder opcode (`0x0072`) was confirmed wrong by actually tracing the runtime packet table (it's reassigned to a skill-use packet for modern clients); the real handshake is `CZ_ENTER` at `0x0436` (23 bytes) → session echo (`0x0283`) → an invisible char-server round trip → `ZC_ACCEPT_ENTER` (`0x02EB`) or `ZC_REFUSE_ENTER` (`0x0074`). Also resolved: this PACKETVER has both packet-ID shuffling and XOR obfuscation mechanisms present in the source but functionally inert (zero-valued keys, no shuffle table entry past 2018-03-07) — traced precisely, not assumed either way.
+* Full gameplay packets (movement after connect, entity spawn, NPC dialogue, item pickup, inventory, skills, combat, chat, party, guild, storage, trade) remain uncatalogued, explicitly deferred to whichever later phase first needs each one (§5.6).
 
 ## 7. Production networking caveat (protocol, not client, problem)
 
-Per §3.1, rAthena does not encrypt any of these three sockets. That is a property of the server protocol, not something to patch around in the Android client with a home-rolled cipher (which would just be security theater and would desync from the PC client's expectations). The correct fix, if internet-facing security matters here, is a TLS-terminating reverse proxy / stunnel in front of ports 6900/char/map, transparent to both PC and mobile clients — a deployment change, not a client or rAthena source change. Flagged here so it isn't silently "fixed" in the wrong layer later.
+Per §3.1/§5.0, rAthena does not meaningfully encrypt any of these three sockets **for this specific server build**: login/char never did, and the map server's packet-obfuscation mechanism resolves to an identity no-op for PACKETVER 20250716 (zero-valued keys, confirmed by tracing `clif_cryptKey`'s actual constants rather than assumed from the `#ifdef PACKET_OBFUSCATION` guard alone). That's a property of the server protocol as currently built, not something to patch around in the Android client with a home-rolled cipher (which would just be security theater and would desync from the PC client's expectations) — and also not something to silently rely on forever, since a server rebuild for an older PACKETVER would reactivate a real cipher this client doesn't implement. The correct fix, if internet-facing security matters here, is a TLS-terminating reverse proxy / stunnel in front of ports 6900/char/map, transparent to both PC and mobile clients — a deployment change, not a client or rAthena source change. Flagged here so it isn't silently "fixed" in the wrong layer later.

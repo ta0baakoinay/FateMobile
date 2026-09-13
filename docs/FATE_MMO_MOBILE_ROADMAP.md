@@ -37,23 +37,29 @@ Depended on byte-mapping the char-server auth handshake and the char-list auto-p
 
 Exit criteria: an existing Fate MMO character (created on PC) is visible and selectable from the Android client, and a new character created on Android is visible on the PC client's char-select screen. **Not yet verified against a live server by a human** — the parsing is byte-accurate to the source, but nobody has run this against a real FateRO instance yet; do that before calling Phase 2 fully closed.
 
-## Phase 3 — Map Connection
+## Phase 3 — Map Connection 🟡 (handshake done; rendering not started)
 
-Depends on: resolving the actual `packet_db[0x0072]` field offsets at runtime for PACKETVER 20250716 (protocol doc §5.1 flags this as dynamically resolved, not a fixed struct — must be confirmed before coding, not assumed from the "default form" comment in source).
+The `packet_db[0x0072]` question flagged after Phase 2 turned out to matter a lot: `0x0072` is **not** `CZ_ENTER` for this build at all — the server reassigns it to `clif_parse_UseSkillToId` for modern clients. Tracing the actual runtime table (`clif_packetdb.hpp` + `clif_shuffle.hpp`) turned up two more things a non-verified implementation would have gotten wrong or badly overbuilt: the map server has both a packet-ID shuffle *and* an XOR obfuscation mechanism in its source, both of which happen to resolve to a no-op for PACKETVER 20250716 (confirmed by tracing the actual zero-valued constants, not assumed from the `#ifdef` alone). Full derivation in protocol doc §5.
 
-* [ ] Migrate networking from the Phase 1 Kotlin PoC into the `native/networking` + `native/protocol` C++ layer (per architecture doc §2, this is the deliberate migration point).
-* [ ] `CZ_ENTER` (0x0072) handshake to the map server using the char-select redirect data (0xAC5 packet from Phase 2).
-* [ ] Minimal map load: walkable-cell grid, ground rendering (even flat-color placeholder tiles are fine here — geometry correctness matters, art doesn't yet).
-* [ ] Character spawns at the server-reported position; camera follows.
+* [x] Resolve the real `CZ_ENTER` opcode/layout for this PACKETVER: `0x0436`, 23 bytes (protocol doc §5.1) — not `0x0072`, and not the 19-byte legacy form either.
+* [x] `MapServerClient.kt`: `CZ_ENTER` handshake using the char-select redirect data from Phase 2, reads the session-id echo (`0x0283`), waits out the invisible char-server round trip (protocol doc §5.3), and parses `ZC_ACCEPT_ENTER` (`0x02EB`) — including reverse-engineering the packed 3-byte X/Y/direction encoding (`WBUFPOS`, protocol doc §5.5) to get real coordinates — or `ZC_REFUSE_ENTER`/`SC_NOTIFY_BAN` on failure.
+* [x] `MapActivity.kt`: debug screen (map name, char/map-server addresses, account/char id, decoded x/y/dir, server start tick) — satisfies brief §37's debug-overlay requirement, but is explicitly *not* a game screen.
+* [ ] **Not done, and not faked:** `CZ_NOTIFY_ACTORINIT` ("LoadEndAck") is never sent, so the server never actually spawns the character or streams inventory/nearby-entities/gameplay packets (protocol doc §5.6) — sending it now would just mean silently dropping data this client can't process yet.
+* [ ] **Not done:** migrating networking from the Phase 1/2/3 Kotlin PoC into the `native/networking` + `native/protocol` C++ layer (architecture doc §2's designated migration point). Still Kotlin/`java.net.Socket` throughout.
+* [ ] **Not done:** any rendering — walkable-cell grid, ground tiles (even flat-color placeholders), camera. No OpenGL ES code exists yet; `native/renderer` still only has the Phase 0 JNI stub.
+* [ ] **Not done:** entity spawn (`ZC_NOTIFY_STANDENTRY` family) — deferred to Phase 4 per the original plan, now doubly true since nothing spawns until `LoadEndAck` is sent.
 
-Exit criteria: character enters a real map (e.g. `prontera`) at the correct server-assigned coordinates, visible in a debug overlay (§37) even before real map art exists.
+Exit criteria (partially met): a character's `CZ_ENTER` handshake against the real map-server succeeds and the server-assigned spawn coordinates are correctly decoded and displayed (protocol-level proof, done) — but the character does not yet visibly "enter a real map" in any rendered sense, since there is no renderer and the client deliberately doesn't send `LoadEndAck` yet. Treat Phase 3 as split into 3a (connect + confirm spawn — done) and 3b (LoadEndAck, entity streaming, rendering, native migration — not started) rather than claiming the whole phase is closed. **Not yet verified against a live server by a human**, same caveat as Phase 2.
 
 ## Phase 4 — Movement
 
+Depends on closing Phase 3b first: sending `CZ_NOTIFY_ACTORINIT`, verifying its actual opcode for this PACKETVER the same way `CZ_ENTER`'s was (protocol doc §5.6 explicitly flags it as unverified, not assumed safe just because it's next in line), and having at least a placeholder renderer to put a character sprite on.
+
+* [ ] `CZ_NOTIFY_ACTORINIT` ("LoadEndAck") — byte-map its real opcode/shuffle status for PACKETVER 20250716 before sending it, same rigor as §5.1.
 * [ ] Virtual joystick input.
 * [ ] Movement intent packets sent to server; rendered position always derived from server-confirmed state (interpolated, never invented — see architecture doc §4).
-* [ ] Other players', NPCs', and monsters' positions rendered from `ZC_NOTIFY_STANDENTRY`-family packets (to be byte-mapped from `clif.cpp` at this phase, per protocol doc §5.2).
-* [ ] Map-to-map transitions (warps) trigger a fresh `CZ_ENTER`-style handshake to the new map.
+* [ ] Other players', NPCs', and monsters' positions rendered from `ZC_NOTIFY_STANDENTRY`-family packets (to be byte-mapped from `clif.cpp` at this phase — expect the same shuffle/version-gating surprises §5 turned up for `CZ_ENTER`, don't assume a generic guide's opcode is right for this build).
+* [ ] Map-to-map transitions (warps) trigger a fresh `CZ_ENTER` (`0x0436`) handshake to the new map.
 
 Exit criteria: a mobile player and a PC player can see each other move on the same map in real time.
 

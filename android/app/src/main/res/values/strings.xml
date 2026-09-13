@@ -33,7 +33,6 @@
     <string name="charselect_back">BACK</string>
     <string name="charselect_character_detail">Job #%1$d · Base Lv. %2$d · Job Lv. %3$d</string>
 
-    <string name="charselect_select_redirect">Server says: map \'%1$s\' at %2$s:%3$d (char #%4$d). Map connection is Phase 3 — not implemented yet.</string>
     <string name="charselect_select_refused">Character select refused (error code %1$d).</string>
     <string name="charselect_select_no_map_server">No map-server currently available on this Fate MMO server.</string>
     <string name="charselect_select_error">Select failed: %1$s</string>
@@ -50,4 +49,13 @@
     <string name="delete_button">Delete</string>
     <string name="charselect_delete_refused">Deletion refused (error code %1$d).</string>
     <string name="charselect_delete_error">Delete failed: %1$s</string>
+
+    <string name="map_title">MAP SERVER — DEBUG</string>
+    <string name="map_not_implemented">Rendering, movement, and gameplay are NOT implemented — this screen only proves the connect handshake (Phase 3). See docs/FATE_MMO_MOBILE_ROADMAP.md.</string>
+    <string name="map_status_connecting">Connecting to map-server…</string>
+    <string name="map_status_success">Map entry accepted by server.</string>
+    <string name="map_status_refused">Map-server refused entry (error code %1$d).</string>
+    <string name="map_status_banned">Disconnected by server (code %1$d).</string>
+    <string name="map_status_error">Map-server error: %1$s</string>
+    <string name="map_detail">map: %1$s\nchar-server: %2$s:%3$d\nmap-server: %4$s:%5$d\naccount_id: %6$d\nchar_id: %7$d\nx, y: %8$d, %9$d\ndir: %10$d\nstart_tick: %11$d</string>
 </resources>

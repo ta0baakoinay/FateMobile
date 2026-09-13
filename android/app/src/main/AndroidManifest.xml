@@ -36,6 +36,12 @@
             android:exported="false"
             android:screenOrientation="sensorLandscape"
             android:theme="@style/Theme.FateMobile" />
+
+        <activity
+            android:name=".ui.MapActivity"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.FateMobile" />
     </application>
 
 </manifest>

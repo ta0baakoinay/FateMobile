@@ -1,10 +1,10 @@
 {
   "environment": "production",
   "login": {
-    "host": "play.fatemmo.example",
+    "host": "51.79.147.208",
     "port": 6900
   },
   "clientVersion": 20250716,
   "clientType": 0,
-  "notes": "Placeholder host — replace with the real production domain before shipping a release build. See docs/FATE_MMO_MOBILE_PROTOCOL.md §7 for why this should sit behind a TLS-terminating proxy rather than exposing raw rAthena TCP directly to the internet."
+  "notes": "Host taken from the PC client's clientinfo.xml. The operator's other listed address, 127.0.0.1, is a loopback/local entry and not reachable from a mobile device. See docs/FATE_MMO_MOBILE_PROTOCOL.md §7 for why a raw IP here should eventually sit behind a TLS-terminating proxy rather than exposing rAthena TCP directly to the internet."
 }

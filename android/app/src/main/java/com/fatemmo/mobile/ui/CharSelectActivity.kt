@@ -1,6 +1,7 @@
 package com.fatemmo.mobile.ui
 
 import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
@@ -22,9 +23,8 @@ import kotlinx.coroutines.launch
 
 /**
  * Character list/select/create/delete screen (Phase 2 —
- * docs/FATE_MMO_MOBILE_ROADMAP.md). Selecting a character shows the server's
- * real map-redirect response (mapname/ip/port) but does not open a map
- * socket — that hand-off is Phase 3 and must not be faked here.
+ * docs/FATE_MMO_MOBILE_ROADMAP.md). Selecting a character hands off to
+ * [MapActivity] (Phase 3) with the server's real map-redirect data.
  */
 class CharSelectActivity : AppCompatActivity() {
 
@@ -43,6 +43,10 @@ class CharSelectActivity : AppCompatActivity() {
     private var producibleSlots = 0
     private var maxSlots = 0
     private var accountSex = 0
+    private var accountId = -1L
+    private var loginId1 = 0L
+    private var charServerHost = ""
+    private var charServerPort = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,9 +59,11 @@ class CharSelectActivity : AppCompatActivity() {
             return
         }
         val port = intent.getIntExtra(EXTRA_CHAR_PORT, 0)
-        val accountId = intent.getLongExtra(EXTRA_ACCOUNT_ID, -1L)
-        val loginId1 = intent.getLongExtra(EXTRA_LOGIN_ID1, 0L)
         val loginId2 = intent.getLongExtra(EXTRA_LOGIN_ID2, 0L)
+        charServerHost = host
+        charServerPort = port
+        accountId = intent.getLongExtra(EXTRA_ACCOUNT_ID, -1L)
+        loginId1 = intent.getLongExtra(EXTRA_LOGIN_ID1, 0L)
         accountSex = intent.getIntExtra(EXTRA_SEX, 0)
 
         binding.createButton.setOnClickListener { showCreateDialog() }
@@ -116,13 +122,20 @@ class CharSelectActivity : AppCompatActivity() {
     private fun selectCharacter(character: CharacterInfo) {
         lifecycleScope.launch {
             when (val result = client.selectCharacter(character.slot)) {
-                is CharSelectResult.MapRedirect -> binding.statusText.text = getString(
-                    R.string.charselect_select_redirect,
-                    result.mapName,
-                    result.mapIp,
-                    result.mapPort,
-                    result.charId
-                )
+                is CharSelectResult.MapRedirect -> {
+                    val intent = Intent(this@CharSelectActivity, MapActivity::class.java).apply {
+                        putExtra(MapActivity.EXTRA_MAP_HOST, result.mapIp)
+                        putExtra(MapActivity.EXTRA_MAP_PORT, result.mapPort)
+                        putExtra(MapActivity.EXTRA_MAP_NAME, result.mapName)
+                        putExtra(MapActivity.EXTRA_CHAR_HOST, charServerHost)
+                        putExtra(MapActivity.EXTRA_CHAR_PORT, charServerPort)
+                        putExtra(MapActivity.EXTRA_ACCOUNT_ID, accountId)
+                        putExtra(MapActivity.EXTRA_CHAR_ID, result.charId)
+                        putExtra(MapActivity.EXTRA_LOGIN_ID1, loginId1)
+                        putExtra(MapActivity.EXTRA_SEX, accountSex)
+                    }
+                    startActivity(intent)
+                }
                 is CharSelectResult.Refused ->
                     binding.statusText.text = getString(R.string.charselect_select_refused, result.errorCode)
                 is CharSelectResult.NoMapServerAvailable ->
