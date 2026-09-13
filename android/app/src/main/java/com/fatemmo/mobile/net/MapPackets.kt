@@ -22,6 +22,14 @@ object MapOpcodes {
     const val ZC_ACCEPT_ENTER: Int = 0x02EB
     const val ZC_REFUSE_ENTER: Int = 0x0074
     const val SC_NOTIFY_BAN: Int = 0x0081 // map-server context — see protocol doc §5.4
+
+    /**
+     * Not in the original protocol doc — found only by live-testing against
+     * the real server (2026-09-14), which sends this between the session
+     * echo and ZC_ACCEPT_ENTER. Reports inventory-slot expansion; harmless
+     * to skip for Phase 3's purposes. See docs/FATE_MMO_MOBILE_PROTOCOL.md §5.4.
+     */
+    const val ZC_EXTEND_BODYITEM_SIZE: Int = 0x0B18
 }
 
 object MapPacketSizes {
@@ -33,6 +41,9 @@ object MapPacketSizes {
 
     /** packetType(2) already consumed; startTime(4) + posDir(3) + xSize(1) + ySize(1) + font(2) */
     const val ZC_ACCEPT_ENTER_BODY = 4 + 3 + 1 + 1 + 2 // 11 bytes (13 total with opcode)
+
+    /** packetType(2) already consumed; expansionSize(2) */
+    const val ZC_EXTEND_BODYITEM_SIZE_BODY = 2
 }
 
 sealed class MapEnterResult {

@@ -81,7 +81,15 @@ class CharServerClient {
             buf.put(slot.toByte())
             writePacket(buf.array())
 
-            val opcode = readUInt16LE(input)
+            var opcode = readUInt16LE(input)
+            if (opcode == CharOpcodes.HC_ACK_PINCODE) {
+                // Unsolicited even with pincode_enabled: no in the shipped conf — found only
+                // by live-testing against the real server (2026-09-14), which sends this
+                // right after CH_SELECT_CHAR regardless. Consume and read the real response
+                // that follows. See docs/FATE_MMO_MOBILE_PROTOCOL.md §4.2/§4.3.
+                input.readFully(ByteArray(10))
+                opcode = readUInt16LE(input)
+            }
             when (opcode) {
                 CharOpcodes.HC_NOTIFY_ZONESVR -> {
                     val body = ByteArray(CharPacketSizes.HC_NOTIFY_ZONESVR_BODY)
@@ -144,7 +152,13 @@ class CharServerClient {
             buf.put(sex.toByte())
             writePacket(buf.array())
 
-            val opcode = readUInt16LE(input)
+            var opcode = readUInt16LE(input)
+            if (opcode == CharOpcodes.HC_ACK_PINCODE) {
+                // See the identical handling in selectCharacter() — confirmed live to
+                // also precede the create response, not just the select response.
+                input.readFully(ByteArray(10))
+                opcode = readUInt16LE(input)
+            }
             when (opcode) {
                 CharOpcodes.HC_ACCEPT_MAKECHAR -> {
                     val body = ByteArray(CharPacketSizes.HC_ACCEPT_MAKECHAR_BODY)
@@ -182,7 +196,13 @@ class CharServerClient {
             buf.put(fixedField(birthdateOrEmail, CharPacketSizes.CH_DELETE_CHAR_CONFIRM_FIELD))
             writePacket(buf.array())
 
-            val opcode = readUInt16LE(input)
+            var opcode = readUInt16LE(input)
+            if (opcode == CharOpcodes.HC_ACK_PINCODE) {
+                // See the identical handling in selectCharacter() — not yet confirmed live
+                // for delete specifically, but the same server-side entry point is involved.
+                input.readFully(ByteArray(10))
+                opcode = readUInt16LE(input)
+            }
             when (opcode) {
                 CharOpcodes.HC_ACCEPT_DELETECHAR -> CharDeleteResult.Success
                 CharOpcodes.HC_REFUSE_DELETECHAR -> CharDeleteResult.Refused(input.readUnsignedByte())
@@ -208,11 +228,12 @@ class CharServerClient {
         var sawSlotSummary = false
         var sawAcceptEnter = false
 
-        // HC_BLOCK_CHARACTER (020D) is always the last packet of this sequence on a
-        // server with pincode disabled (this server's shipped default — see protocol
-        // doc §4.2). If an operator later enables pincode_enabled, an extra 0x08B9
-        // arrives after this and the next read on this socket (e.g. selectCharacter)
-        // will desync; revisit this loop's exit condition if that config ever changes.
+        // HC_BLOCK_CHARACTER (020D) is the last packet of this initial push observed
+        // live — HC_ACK_PINCODE (0x08B9) was NOT seen interleaved here in testing
+        // despite pincode_enabled: no; it showed up instead right after
+        // CH_SELECT_CHAR/CH_MAKE_CHAR (handled directly in those functions). Still
+        // handled below defensively in case ordering ever differs. See protocol
+        // doc §4.2.
         while (true) {
             val opcode = readUInt16LE(input)
             when (opcode) {
@@ -254,11 +275,9 @@ class CharServerClient {
                 }
 
                 CharOpcodes.HC_ACK_PINCODE -> {
-                    // Not implemented (pincode disabled by default on this server —
-                    // see protocol doc §4.2). Consume it so the stream stays framed,
-                    // but don't act on it.
+                    // Sent even with pincode_enabled: no (live-confirmed, see protocol
+                    // doc §4.2) — consume and continue rather than treat as terminal.
                     input.readFully(ByteArray(10))
-                    Log.w(TAG, "Received HC_ACK_PINCODE — server has pincode enabled; not handled by this client yet.")
                 }
 
                 else -> return CharListResult.ConnectionError("Unexpected opcode 0x${opcode.toString(16)} while awaiting char list")
@@ -319,6 +338,7 @@ class CharServerClient {
         buf.putInt(accountId.toInt())
         buf.putInt(loginId1.toInt())
         buf.putInt(loginId2.toInt())
+        buf.putShort(0) // unknown/padding — real gap before `sex`, see CharPacketSizes.CH_ENTER
         buf.put(sex.toByte())
         return buf.array()
     }

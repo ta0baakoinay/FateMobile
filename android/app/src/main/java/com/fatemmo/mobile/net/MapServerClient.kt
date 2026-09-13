@@ -96,6 +96,13 @@ class MapServerClient {
                 MapOpcodes.ZC_REFUSE_ENTER -> return MapEnterResult.Refused(input.readUnsignedByte())
                 MapOpcodes.SC_NOTIFY_BAN -> return MapEnterResult.Banned(input.readUnsignedByte())
 
+                // ZC_EXTEND_BODYITEM_SIZE — NOT in the original protocol doc; found only by
+                // live-testing against the real server, which sends it between the session
+                // echo and ZC_ACCEPT_ENTER. Confirms the doc's own warning that this
+                // handshake window can carry more packets than initially catalogued.
+                // See docs/FATE_MMO_MOBILE_PROTOCOL.md §5.4.
+                MapOpcodes.ZC_EXTEND_BODYITEM_SIZE -> input.readFully(ByteArray(MapPacketSizes.ZC_EXTEND_BODYITEM_SIZE_BODY))
+
                 else -> return MapEnterResult.ConnectionError("Unexpected opcode 0x${opcode.toString(16)} while awaiting map entry")
             }
         }

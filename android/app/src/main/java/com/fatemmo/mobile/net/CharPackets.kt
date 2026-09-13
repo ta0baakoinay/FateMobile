@@ -18,7 +18,7 @@ object CharOpcodes {
     const val HC_ACCEPT_ENTER: Int = 0x006B
     const val HC_CHARLIST_NOTIFY: Int = 0x09A0
     const val HC_BLOCK_CHARACTER: Int = 0x020D
-    const val HC_ACK_PINCODE: Int = 0x08B9 // inert unless the server enables pincode_enabled
+    const val HC_ACK_PINCODE: Int = 0x08B9 // sent unsolicited even with pincode_enabled: no — see docs/FATE_MMO_MOBILE_PROTOCOL.md §4.2
 
     const val CH_SELECT_CHAR: Int = 0x0066
     const val HC_NOTIFY_ZONESVR: Int = 0x0AC5
@@ -36,8 +36,16 @@ object CharOpcodes {
 object CharPacketSizes {
     const val NAME_LENGTH = 24
 
-    /** packetType(2) + account_id(4) + login_id1(4) + login_id2(4) + sex(1) */
-    const val CH_ENTER = 2 + 4 + 4 + 4 + 1 // 17 bytes
+    /**
+     * packetType(2) + account_id(4) + login_id1(4) + login_id2(4) + unknown/padding(2) + sex(1).
+     * The 2-byte gap before `sex` is real (char_clif.cpp reads login_id2 via
+     * RFIFOL(fd,10) then sex via RFIFOB(fd,16), not offset 14) — an earlier
+     * version of this file omitted it, which live-server testing caught as
+     * `sex` silently corrupting to 0 (SEX_FEMALE) regardless of the account's
+     * actual sex, causing an opaque char-server auth rejection. See
+     * docs/FATE_MMO_MOBILE_PROTOCOL.md §4.1.
+     */
+    const val CH_ENTER = 2 + 4 + 4 + 4 + 2 + 1 // 17 bytes
 
     /** Bare, opcode-less account_id echo the server sends right after CH_ENTER. */
     const val CH_ENTER_ECHO = 4

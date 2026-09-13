@@ -1,10 +1,10 @@
 {
   "environment": "production",
   "login": {
-    "host": "51.79.147.208",
+    "host": "167.104.101.102",
     "port": 6900
   },
   "clientVersion": 55,
   "clientType": 0,
-  "notes": "Host resolved by direct SSH access to the operator's actual VPS (debian@51.79.147.208), confirmed to be running the real FateRO checkout (/home/debian/FateRO, git remote origin=ta0baakoinay/FateRO) with login_port=6900 in conf/login_athena.conf. This supersedes 167.104.101.102, which came from a clientinfo.xml snapshot bundled in the client's Fate.grf and could not be independently confirmed as still current — direct server access is stronger evidence. clientVersion 55 still comes from that same clientinfo.xml (data/clientinfo.xml inside F:\\FateMMO\\Fate.grf) and remains unverified against the server itself, since the login handler doesn't enforce this field (see docs/FATE_MMO_MOBILE_PROTOCOL.md §3.1). See docs/FATE_MMO_MOBILE_PROTOCOL.md §7 for why a raw IP here should eventually sit behind a TLS-terminating proxy rather than exposing rAthena TCP directly to the internet."
+  "notes": "167.104.101.102 is the operator's real production entry point — a proxy in front of the actual backend, confirmed by the operator directly (2026-09-14), NOT a stale address as an earlier pass of this doc incorrectly concluded from direct-SSH-access being 'stronger evidence' than the clientinfo.xml snapshot. The real backend (51.79.147.208, SSH-verified to run the actual FateRO checkout) sits behind this proxy and behind a second proxy at 127.0.0.1 — mobile should connect the same way the real PC client does, i.e. through this proxy, not directly to the backend. Use 51.79.147.208 only for direct debugging/verification (e.g. confirming server process state over SSH), never as the shipped production target. clientVersion 55 comes from data/clientinfo.xml inside F:\\FateMMO\\Fate.grf and is unenforced by the login handler either way (see docs/FATE_MMO_MOBILE_PROTOCOL.md §3.1)."
 }
