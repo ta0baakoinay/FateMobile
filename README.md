@@ -8,15 +8,16 @@ Native Android client for the **Fate MMO** rAthena server (server source: [`ta0b
 2. [`docs/FATE_MMO_MOBILE_PROTOCOL.md`](docs/FATE_MMO_MOBILE_PROTOCOL.md) — the wire protocol, byte-mapped directly from the FateRO server source (not guessed).
 3. [`docs/FATE_MMO_MOBILE_ROADMAP.md`](docs/FATE_MMO_MOBILE_ROADMAP.md) — phased build order and exit criteria for each phase.
 
-## Current status: Phase 1 — Network Proof of Concept
+## Current status: Phase 2 — Character Selection
 
 The Android project in [`android/`](android/) builds a real, installable APK containing:
 
 * A native login screen (`ui.LoginActivity`) — no WebView, no HTML.
 * `net.LoginClient` — opens a raw TCP socket to the configured Fate MMO login server, sends `CA_LOGIN` (0x0064), and parses the server's actual `AC_ACCEPT_LOGIN` / `AC_REFUSE_LOGIN` / `SC_NOTIFY_BAN` response, exactly per the protocol doc.
+* `net.CharServerClient` + `ui.CharSelectActivity` — on a successful login, connects to the char-server, drains the real character-list push (four packets: slot summary, character array, page notify, block list), and renders a text-only list (name/job/level) with working Play, Create, and Delete against the live server's actual char-server protocol — including using the account's **birthdate**, not an email, for deletion, per this server's actual config.
 * An NDK/CMake-linked native library (`native/`) with a stub JNI call, proving the C++ toolchain is wired before real engine code lands there in later phases.
 
-It does **not** yet do character selection, map loading, rendering, or gameplay — see the roadmap for why, and what's next.
+It does **not** yet do map loading, rendering, sprites, or gameplay — see the roadmap for why, and what's next. Selecting a character shows the server's real map-redirect response but doesn't open a map connection yet (Phase 3).
 
 ## Building
 

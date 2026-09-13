@@ -23,16 +23,19 @@ Goal: prove the login handshake against the real server, nothing else.
 
 Exit criteria: a real Fate MMO account can log in from an Android device/emulator and the app correctly displays either the account's char-server list or the server's actual refusal reason — both observed against the live server, not mocked.
 
-## Phase 2 — Character Selection
+## Phase 2 — Character Selection ✅ (protocol + client implemented)
 
-Depends on: byte-mapping `chclif_mmo_send099d`'s reply and the char-server auth handshake's full response (currently opcode-confirmed only, per protocol doc §4.4 `TODO`).
+Depended on byte-mapping the char-server auth handshake and the char-list auto-push, which was `TODO` after Phase 1 — now fully done in protocol doc §4, including two version-gated details a generic rAthena guide would get wrong for this exact server build: `HC_ACCEPT_MAKECHAR` is `0x0B6F` (not the classic `0x006D`), and character deletion needs the account's **birthdate**, not an email, per this server's shipped `char_del_option: 2`.
 
-* [ ] Grep `char_clif.cpp` for the exact char-list reply struct (0x099D family) before writing any UI against it.
-* [ ] Char-server connect (`CH_ENTER` 0x0065) using `login_id1/login_id2/AID/sex` captured in Phase 1.
-* [ ] Character list screen: sprite, name, job, base/job level; Play/Create/Delete/Back.
-* [ ] Character create (`CH_MAKE_CHAR`) and delete (`CH_DELETE_CHAR`) flows, including whatever confirmation step the live server enforces (email/birthdate confirmation for delete is common in rAthena — verify against this server's actual config, don't assume).
+* [x] Byte-map the char-list reply — turned out to be a 4-packet auto-push (`0x082D` slot summary → `0x006B` character array → `0x09A0` page notify → `0x020D` block/ban list), not the `0x099D` pagination packet the Phase 1 doc guessed might be relevant (that one's only used for later re-pagination, not the initial push — corrected in protocol doc §4.2).
+* [x] `CharServerClient.kt`: persistent-socket char-server client — `CH_ENTER` (0x0065) using `login_id1/login_id2/AID/sex` from Phase 1, drains the full char-list push, `CH_SELECT_CHAR`, `CH_MAKE_CHAR`, `CH_DELETE_CHAR`.
+* [x] Character list screen (`CharSelectActivity.kt`): name, job id, base level, job level; Play/Create/Delete/Back. **No sprite yet** — that needs the asset pipeline/renderer (§7/§9 of the architecture doc), which doesn't exist until Phase 3+; showing one now would mean faking it, so the row is text-only until there's a real sprite to draw.
+* [x] Character create (`CH_MAKE_CHAR`, opcode `0x0A39` for this client version) — name only in the UI; hair/job customization skipped since the server hardcodes starting stats regardless (protocol doc §4.5) and a fuller picker is cosmetic polish, not needed to prove the flow.
+* [x] Character delete (`CH_DELETE_CHAR`, opcode `0x0068`) — UI asks for the account **birthdate (YYMMDD)**, matching this server's actual shipped config rather than a generic "email" assumption a non-verified implementation would guess.
+* Selecting a character shows the server's real map-redirect response (map name/ip/port) but does **not** open a map connection — that's Phase 3's job, and faking a map transition here would violate the no-fake-features rule.
+* PIN code entry (`HC_ACK_PINCODE`/`0x08B9`) is recognized (won't desync the stream) but has no UI — `pincode_enabled: no` in this server's shipped conf, so building that screen now would be implementing a system not actually in use, per the incremental-build rule. Revisit if the live server enables it.
 
-Exit criteria: an existing Fate MMO character (created on PC) is visible and selectable from the Android client, and a new character created on Android is visible on the PC client's char-select screen.
+Exit criteria: an existing Fate MMO character (created on PC) is visible and selectable from the Android client, and a new character created on Android is visible on the PC client's char-select screen. **Not yet verified against a live server by a human** — the parsing is byte-accurate to the source, but nobody has run this against a real FateRO instance yet; do that before calling Phase 2 fully closed.
 
 ## Phase 3 — Map Connection
 

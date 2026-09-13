@@ -20,4 +20,34 @@
 
     <string name="dialog_settings_title">Server Settings</string>
     <string name="dialog_exit_title">Exit Fate MMO?</string>
+
+    <string name="charselect_title">CHARACTER SELECT</string>
+    <string name="charselect_status_connecting">Connecting to char-server…</string>
+    <string name="charselect_status_ready">%1$d / %2$d character slots used.</string>
+    <string name="charselect_status_empty">No characters yet — create one to begin.</string>
+    <string name="charselect_status_refused">Char-server refused connection (error code %1$d).</string>
+    <string name="charselect_status_error">Char-server error: %1$s</string>
+    <string name="charselect_play">PLAY</string>
+    <string name="charselect_delete">DELETE</string>
+    <string name="charselect_create">CREATE</string>
+    <string name="charselect_back">BACK</string>
+    <string name="charselect_character_detail">Job #%1$d · Base Lv. %2$d · Job Lv. %3$d</string>
+
+    <string name="charselect_select_redirect">Server says: map \'%1$s\' at %2$s:%3$d (char #%4$d). Map connection is Phase 3 — not implemented yet.</string>
+    <string name="charselect_select_refused">Character select refused (error code %1$d).</string>
+    <string name="charselect_select_no_map_server">No map-server currently available on this Fate MMO server.</string>
+    <string name="charselect_select_error">Select failed: %1$s</string>
+
+    <string name="dialog_create_title">Create Character</string>
+    <string name="create_name_hint">Character name</string>
+    <string name="create_button">Create</string>
+    <string name="charselect_create_refused">Character creation refused (error code %1$d — see docs/FATE_MMO_MOBILE_PROTOCOL.md §4.5).</string>
+    <string name="charselect_create_error">Create failed: %1$s</string>
+
+    <string name="dialog_delete_title">Delete %1$s?</string>
+    <string name="delete_confirm_hint">Birthdate (YYMMDD)</string>
+    <string name="delete_confirm_help">This server requires your account birthdate to confirm deletion, not an email.</string>
+    <string name="delete_button">Delete</string>
+    <string name="charselect_delete_refused">Deletion refused (error code %1$d).</string>
+    <string name="charselect_delete_error">Delete failed: %1$s</string>
 </resources>

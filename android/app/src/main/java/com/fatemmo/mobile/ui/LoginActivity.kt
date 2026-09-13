@@ -1,6 +1,7 @@
 package com.fatemmo.mobile.ui
 
 import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -12,6 +13,7 @@ import com.fatemmo.mobile.BuildConfig
 import com.fatemmo.mobile.R
 import com.fatemmo.mobile.config.ServerConfig
 import com.fatemmo.mobile.databinding.ActivityLoginBinding
+import com.fatemmo.mobile.net.CharServerEntry
 import com.fatemmo.mobile.net.LoginClient
 import com.fatemmo.mobile.net.LoginResult
 import com.fatemmo.mobile.util.NativeBridge
@@ -20,9 +22,8 @@ import kotlinx.coroutines.launch
 /**
  * Native login screen (Phase 1 — see docs/FATE_MMO_MOBILE_ROADMAP.md).
  *
- * On success this only *displays* the account id and char-server list; it does
- * not proceed to character selection. That hand-off is Phase 2 and must not be
- * faked here with placeholder character data (brief §35 — no fake features).
+ * On success, hands off to [CharSelectActivity] (Phase 2) with the char-server
+ * target and auth data (account id, login_id1/2, sex) from AC_ACCEPT_LOGIN.
  */
 class LoginActivity : AppCompatActivity() {
 
@@ -88,6 +89,30 @@ class LoginActivity : AppCompatActivity() {
             is LoginResult.Banned -> getString(R.string.status_banned, result.resultCode)
             is LoginResult.ConnectionError -> getString(R.string.status_error, result.message)
         }
+
+        if (result is LoginResult.Success) {
+            goToCharSelect(result)
+        }
+    }
+
+    /** Picks the char-server with the fewest connected users, per protocol doc §3.2. */
+    private fun pickCharServer(servers: List<CharServerEntry>): CharServerEntry? =
+        servers.minByOrNull { it.users }
+
+    private fun goToCharSelect(result: LoginResult.Success) {
+        val target = pickCharServer(result.charServers) ?: run {
+            binding.statusText.text = getString(R.string.status_error, "No char-servers in AC_ACCEPT_LOGIN response")
+            return
+        }
+        val intent = Intent(this, CharSelectActivity::class.java).apply {
+            putExtra(CharSelectActivity.EXTRA_CHAR_HOST, target.ip)
+            putExtra(CharSelectActivity.EXTRA_CHAR_PORT, target.port)
+            putExtra(CharSelectActivity.EXTRA_ACCOUNT_ID, result.accountId)
+            putExtra(CharSelectActivity.EXTRA_LOGIN_ID1, result.loginId1)
+            putExtra(CharSelectActivity.EXTRA_LOGIN_ID2, result.loginId2)
+            putExtra(CharSelectActivity.EXTRA_SEX, result.sex)
+        }
+        startActivity(intent)
     }
 
     private fun setBusy(busy: Boolean) {
