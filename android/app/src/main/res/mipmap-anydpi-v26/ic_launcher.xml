@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@drawable/ic_launcher_background" />
+    <!-- android-chrome-512x512.png is already a fully-framed square badge (own
+         border, no transparent margin), not a layered foreground/background
+         source. Using it as both layers means an OEM's circular/squircle mask
+         crops the outer frame slightly — acceptable for this art style (it's
+         how the source badge was designed) rather than distorting it with an
+         artificial safe-zone inset. Revisit if Fate MMO ships a proper layered
+         adaptive-icon source later. -->
+    <background android:drawable="@color/fate_bg" />
     <foreground android:drawable="@drawable/ic_launcher_foreground" />
 </adaptive-icon>
