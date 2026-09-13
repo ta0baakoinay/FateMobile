@@ -4,7 +4,10 @@ import android.graphics.BitmapFactory
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.fatemmo.mobile.BuildConfig
 import com.fatemmo.mobile.R
+import com.fatemmo.mobile.assets.AssetDownloadManager
+import com.fatemmo.mobile.config.ServerConfig
 import com.fatemmo.mobile.databinding.ActivityMapBinding
 import com.fatemmo.mobile.net.MapEnterResult
 import com.fatemmo.mobile.net.MapServerClient
@@ -47,6 +50,13 @@ class MapActivity : AppCompatActivity() {
         private const val BUNDLED_MAP_NAME = "prontera"
         private const val BUNDLED_MAP_GROUND_ASSET = "maps/prontera/ground.jpg"
         private const val BUNDLED_MAP_GAT_ASSET = "maps/prontera/prontera.gat"
+
+        // Same relative path used by tools/grf/out/manifest.json and the
+        // server-hosted asset pack — see AssetDownloadManager. A downloaded
+        // copy under filesDir/assets/... takes priority over the bundled
+        // APK copy when both exist, since the download is how this build
+        // gets updated art without shipping a new APK.
+        private const val SPRITE_ASSET_PATH = "sprites/novice_male.png"
     }
 
     private lateinit var binding: ActivityMapBinding
@@ -107,16 +117,28 @@ class MapActivity : AppCompatActivity() {
     }
 
     private suspend fun showRealMap(spawnX: Int, spawnY: Int) {
+        val serverConfig = ServerConfig.load(this, BuildConfig.SERVER_CONFIG_ASSET)
+        val downloadManager = serverConfig.assetBaseUrl?.let { AssetDownloadManager(this, it) }
+
         val (groundBytes, gatBytes) = withContext(Dispatchers.IO) {
-            val ground = assets.open(BUNDLED_MAP_GROUND_ASSET).use { it.readBytes() }
-            val gat = assets.open(BUNDLED_MAP_GAT_ASSET).use { it.readBytes() }
+            val ground = downloadManager?.localFile(BUNDLED_MAP_GROUND_ASSET)?.takeIf { it.exists() }
+                ?.let { it.readBytes() }
+                ?: assets.open(BUNDLED_MAP_GROUND_ASSET).use { it.readBytes() }
+            val gat = downloadManager?.localFile(BUNDLED_MAP_GAT_ASSET)?.takeIf { it.exists() }
+                ?.let { it.readBytes() }
+                ?: assets.open(BUNDLED_MAP_GAT_ASSET).use { it.readBytes() }
             ground to gat
         }
         binding.gameMapView.visibility = android.view.View.VISIBLE
         binding.gameMapView.loadMap(groundBytes, gatBytes, spawnX, spawnY)
 
         val sprite = withContext(Dispatchers.IO) {
-            BitmapFactory.decodeResource(resources, R.drawable.sprite_novice_male)
+            val downloaded = downloadManager?.localFile(SPRITE_ASSET_PATH)?.takeIf { it.exists() }
+            if (downloaded != null) {
+                BitmapFactory.decodeFile(downloaded.absolutePath)
+            } else {
+                BitmapFactory.decodeResource(resources, R.drawable.sprite_novice_male)
+            }
         }
         binding.gameMapView.setSprite(sprite)
     }

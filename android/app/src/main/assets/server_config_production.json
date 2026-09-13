@@ -6,5 +6,6 @@
   },
   "clientVersion": 55,
   "clientType": 0,
+  "assetBaseUrl": "http://167.104.101.102:8080/fatemobile-assets",
   "notes": "167.104.101.102 is the operator's real production entry point — a proxy in front of the actual backend, confirmed by the operator directly (2026-09-14), NOT a stale address as an earlier pass of this doc incorrectly concluded from direct-SSH-access being 'stronger evidence' than the clientinfo.xml snapshot. The real backend (51.79.147.208, SSH-verified to run the actual FateRO checkout) sits behind this proxy and behind a second proxy at 127.0.0.1 — mobile should connect the same way the real PC client does, i.e. through this proxy, not directly to the backend. Use 51.79.147.208 only for direct debugging/verification (e.g. confirming server process state over SSH), never as the shipped production target. clientVersion 55 comes from data/clientinfo.xml inside F:\\FateMMO\\Fate.grf and is unenforced by the login handler either way (see docs/FATE_MMO_MOBILE_PROTOCOL.md §3.1)."
 }

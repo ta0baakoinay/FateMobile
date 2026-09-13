@@ -15,7 +15,15 @@ data class ServerConfig(
     val loginHost: String,
     val loginPort: Int,
     val clientVersion: Long,
-    val clientType: Int
+    val clientType: Int,
+    /**
+     * Base URL for the two-tier asset download system (see
+     * docs/FATE_MMO_MOBILE_ASSETS.md §download-system). Null in configs where
+     * no asset server has been stood up yet (development/staging) — callers
+     * must treat that as "downloads unavailable in this environment", not
+     * fall back to a guessed URL.
+     */
+    val assetBaseUrl: String?
 ) {
     companion object {
         /**
@@ -42,7 +50,8 @@ data class ServerConfig(
                 // actual Fate.grf client package — NOT the server's PACKETVER build
                 // date (20250716), which is an unrelated number for a different field.
                 clientVersion = obj.optLong("clientVersion", 55L),
-                clientType = obj.optInt("clientType", 0)
+                clientType = obj.optInt("clientType", 0),
+                assetBaseUrl = if (obj.has("assetBaseUrl")) obj.getString("assetBaseUrl") else null
             )
         }
     }

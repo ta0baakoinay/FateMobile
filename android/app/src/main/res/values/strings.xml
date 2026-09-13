@@ -7,7 +7,18 @@
     <string name="login_password_hint">Password</string>
     <string name="login_button">LOGIN</string>
     <string name="login_settings_button">SETTINGS</string>
+    <string name="login_assets_button">DOWNLOAD ASSETS</string>
     <string name="login_exit_button">EXIT</string>
+
+    <string name="dialog_assets_title">Download Assets</string>
+    <string name="assets_option_essential">Essential — just what\'s needed to enter the game now</string>
+    <string name="assets_option_full">Everything currently available on the server</string>
+    <string name="assets_unavailable">No asset server is configured for this environment (%1$s) — using assets bundled in the app instead.</string>
+    <string name="assets_fetching_manifest">Checking for updated assets…</string>
+    <string name="assets_manifest_error">Could not reach asset server: %1$s</string>
+    <string name="assets_downloading">Downloading %1$s (%2$d/%3$d) — %4$d%%</string>
+    <string name="assets_done">Assets up to date (%1$d file(s)).</string>
+    <string name="assets_failed">Download failed: %1$s</string>
 
     <string name="status_idle">Enter your Fate MMO account to continue.</string>
     <string name="status_connecting">Connecting to %1$s:%2$d…</string>

@@ -1,0 +1,38 @@
+{
+  "manifestVersion": 1,
+  "packs": {
+    "essential": {
+      "description": "Minimum needed to enter the game — the prontera starting map and default character sprite.",
+      "files": [
+        { "path": "maps/prontera/ground.jpg", "sha256": "68bbb058dc2cd04c67675917f9b41ab2c04ec56fcbcb7f4111021f3a4e37d93a", "size": 2979050 },
+        { "path": "maps/prontera/prontera.gat", "sha256": "f12ace2e4069e0888106f475fa008b2c46d41aa844e1d1eac43e2b7bfcec1c16", "size": 2446094 },
+        { "path": "sprites/novice_male.png", "sha256": "26a442d976613b8bfbad64509b4651f6803837bc3157d3774d3e9244c9f4cc3a", "size": 2935 }
+      ]
+    },
+    "maps": {
+      "prontera": {
+        "description": "Prontera ground + walkability",
+        "files": [
+          { "path": "maps/prontera/ground.jpg", "sha256": "68bbb058dc2cd04c67675917f9b41ab2c04ec56fcbcb7f4111021f3a4e37d93a", "size": 2979050 },
+          { "path": "maps/prontera/prontera.gat", "sha256": "f12ace2e4069e0888106f475fa008b2c46d41aa844e1d1eac43e2b7bfcec1c16", "size": 2446094 }
+        ]
+      }
+    },
+    "sprites": {
+      "novice_male": {
+        "description": "Default male Novice sprite (static frame)",
+        "files": [
+          { "path": "sprites/novice_male.png", "sha256": "26a442d976613b8bfbad64509b4651f6803837bc3157d3774d3e9244c9f4cc3a", "size": 2935 }
+        ]
+      }
+    }
+  },
+  "full": {
+    "description": "Everything currently available — same content as essential for this build (only one map/sprite converted so far).",
+    "files": [
+      { "path": "maps/prontera/ground.jpg", "sha256": "68bbb058dc2cd04c67675917f9b41ab2c04ec56fcbcb7f4111021f3a4e37d93a", "size": 2979050 },
+      { "path": "maps/prontera/prontera.gat", "sha256": "f12ace2e4069e0888106f475fa008b2c46d41aa844e1d1eac43e2b7bfcec1c16", "size": 2446094 },
+      { "path": "sprites/novice_male.png", "sha256": "26a442d976613b8bfbad64509b4651f6803837bc3157d3774d3e9244c9f4cc3a", "size": 2935 }
+    ]
+  }
+}

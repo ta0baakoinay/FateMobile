@@ -11,6 +11,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.fatemmo.mobile.BuildConfig
 import com.fatemmo.mobile.R
+import com.fatemmo.mobile.assets.AssetDownloadManager
+import com.fatemmo.mobile.assets.AssetPack
 import com.fatemmo.mobile.config.ServerConfig
 import com.fatemmo.mobile.databinding.ActivityLoginBinding
 import com.fatemmo.mobile.net.CharServerEntry
@@ -48,7 +50,67 @@ class LoginActivity : AppCompatActivity() {
 
         binding.loginButton.setOnClickListener { attemptLogin() }
         binding.settingsButton.setOnClickListener { showSettingsDialog() }
+        binding.assetsButton.setOnClickListener { showAssetsDialog() }
         binding.exitButton.setOnClickListener { confirmExit() }
+    }
+
+    /**
+     * Two-tier download choice (essential vs. full pack) against the
+     * server-hosted manifest — see docs/FATE_MMO_MOBILE_ASSETS.md
+     * §download-system and [AssetDownloadManager]. Purely additive: login
+     * still works without ever opening this, falling back to whatever
+     * assets are bundled in the APK (see MapActivity.showRealMap).
+     */
+    private fun showAssetsDialog() {
+        val baseUrl = serverConfig.assetBaseUrl
+        if (baseUrl == null) {
+            binding.statusText.text = getString(R.string.assets_unavailable, serverConfig.environment)
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_assets_title)
+            .setItems(arrayOf(
+                getString(R.string.assets_option_essential),
+                getString(R.string.assets_option_full)
+            )) { _, which ->
+                lifecycleScope.launch { runDownload(baseUrl, essential = which == 0) }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private suspend fun runDownload(baseUrl: String, essential: Boolean) {
+        val manager = AssetDownloadManager(this, baseUrl)
+        setBusy(true)
+        binding.statusText.text = getString(R.string.assets_fetching_manifest)
+
+        val manifest = try {
+            manager.fetchManifest()
+        } catch (e: Exception) {
+            setBusy(false)
+            binding.statusText.text = getString(R.string.assets_manifest_error, e.message ?: e.toString())
+            return
+        }
+
+        val pack: AssetPack = if (essential) manifest.essentialPack else manifest.fullPack
+        val outcome = manager.downloadPack(pack) { progress ->
+            val percent = if (progress.packBytesTotal > 0) {
+                (progress.packBytesDone * 100 / progress.packBytesTotal).toInt()
+            } else 100
+            runOnUiThread {
+                binding.statusText.text = getString(
+                    R.string.assets_downloading,
+                    progress.currentFile, progress.fileIndex, progress.fileCount, percent
+                )
+            }
+        }
+
+        setBusy(false)
+        binding.statusText.text = when (outcome) {
+            is AssetDownloadManager.Outcome.Success -> getString(R.string.assets_done, pack.files.size)
+            is AssetDownloadManager.Outcome.Failed -> getString(R.string.assets_failed, outcome.message)
+        }
     }
 
     private fun attemptLogin() {
@@ -118,6 +180,7 @@ class LoginActivity : AppCompatActivity() {
     private fun setBusy(busy: Boolean) {
         binding.loadingSpinner.visibility = if (busy) View.VISIBLE else View.GONE
         binding.loginButton.isEnabled = !busy
+        binding.assetsButton.isEnabled = !busy
     }
 
     /** Dev-convenience override of the flavor-selected server target (brief §30). */
